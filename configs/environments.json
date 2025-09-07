@@ -1,0 +1,18 @@
+{
+  "development": {
+    "baseUrl": "https://httpbin.org",
+    "timeout": 30
+  },
+  "staging": {
+    "baseUrl": "https://httpbin.org",
+    "timeout": 30
+  },
+  "production": {
+    "baseUrl": "https://httpbin.org",
+    "timeout": 30
+  },
+  "qa": {
+    "baseUrl": "https://httpbin.org",
+    "timeout": 30
+  }
+}

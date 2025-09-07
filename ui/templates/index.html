@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Test Runner</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            // Configure Tailwind
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            dark: {
+                                900: "#121212",
+                                800: "#1e1e1e",
+                                700: "#2d2d2d",
+                                600: "#333333",
+                            },
+                        },
+                    },
+                },
+            };
+        </script>
+    </head>
+    <body
+        class="bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100 min-h-screen"
+    >
+        <header
+            class="flex justify-between items-center p-6 bg-gray-100 dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700"
+        >
+            <h1 class="text-2xl font-bold">Test Runner</h1>
+            <div class="flex items-center space-x-4">
+                <div>
+                    <select
+                        id="environment"
+                        name="environment"
+                        class="w-full p-2 border border-gray-300 dark:border-dark-700 rounded bg-white dark:bg-dark-800"
+                    >
+                        {% for env_name in environments.keys() %}
+                        <option value="{{ env_name }}">
+                            {{ env_name.capitalize() }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button
+                    id="themeToggle"
+                    class="px-4 py-2 bg-gray-200 dark:bg-dark-600 rounded hover:bg-gray-300 dark:hover:bg-dark-700 transition self-end"
+                >
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="container mx-auto p-6">
+            <form id="testForm" action="/run-tests" method="post">
+                <input
+                    type="hidden"
+                    id="selectedEnvironment"
+                    name="environment"
+                    value=""
+                />
+
+                <div class="mb-24">
+                    {% for group_name, tests in groups.items() %}
+                    <!-- Group {{ loop.index }} -->
+                    {% set grouploop = loop %}
+                    <div
+                        class="mb-4 border border-gray-200 dark:border-dark-700 rounded"
+                    >
+                        <div
+                            class="group-header flex justify-between items-center p-4 bg-gray-100 dark:bg-dark-800 cursor-pointer"
+                            data-group-id="group{{ loop.index }}"
+                        >
+                            <div class="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="group{{ loop.index }}-checkbox"
+                                    class="mr-3 h-4 w-4 group-checkbox"
+                                    data-group="group{{ loop.index }}"
+                                />
+                                <h3 class="text-lg font-semibold">
+                                    {{ group_name }}
+                                </h3>
+                            </div>
+                            <span
+                                class="arrow transition-transform"
+                                id="arrow-group{{ loop.index }}"
+                                >▼</span
+                            >
+                        </div>
+                        <div
+                            class="group-content hidden p-4"
+                            id="group{{ loop.index }}"
+                        >
+                            {% for test in tests %}
+                            <div class="flex items-center py-2">
+                                <input
+                                    type="checkbox"
+                                    id="test-{{ loop.index }}-{{ loop.index0 }}"
+                                    name="selected_tests"
+                                    value="{{ test.name }}"
+                                    class="mr-3 h-4 w-4 test-checkbox"
+                                    data-group="group{{ grouploop.index }}"
+                                />
+                                <label
+                                    for="test-{{ loop.index }}-{{ loop.index0 }}"
+                                    >{{ test.name }}</label
+                                >
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <footer class="fixed bottom-0 left-0 right-0 bg-gray-100 dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700 p-4">
+                    <div class="container mx-auto flex justify-end">
+                        <button
+                            type="submit"
+                            class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded shadow-lg transition"
+                        >
+                            Run Selected Tests →
+                        </button>
+                    </div>
+                </footer>
+            </form>
+        </div>
+
+        <script>
+            // Toggle dark/light theme
+            const themeToggle = document.getElementById("themeToggle");
+            const themeIcon = document.getElementById("themeIcon");
+
+            themeToggle.addEventListener("click", () => {
+                document.documentElement.classList.toggle("dark");
+                if (document.documentElement.classList.contains("dark")) {
+                    themeIcon.textContent = "☀️";
+                    themeToggle.innerHTML = '<span id="themeIcon">☀️</span>';
+                } else {
+                    themeIcon.textContent = "🌙";
+                    themeToggle.innerHTML = '<span id="themeIcon">🌙</span>';
+                }
+            });
+
+            // Initialize when DOM is loaded
+            document.addEventListener("DOMContentLoaded", function () {
+                // Toggle group visibility
+                function toggleGroup(groupId) {
+                    const content = document.getElementById(groupId);
+                    const arrow = document.getElementById("arrow-" + groupId);
+                    content.classList.toggle("hidden");
+                    arrow.classList.toggle("rotate-180");
+                }
+
+                // Add click event to group headers
+                document.querySelectorAll(".group-header").forEach((header) => {
+                    header.addEventListener("click", function (e) {
+                        // If the click target is the checkbox, handle it separately
+                        if (e.target.classList.contains("group-checkbox")) {
+                            const group = e.target.getAttribute("data-group");
+                            const testCheckboxes = document.querySelectorAll(
+                                `.test-checkbox[data-group="${group}"]`,
+                            );
+                            testCheckboxes.forEach((testCheckbox) => {
+                                testCheckbox.checked = e.target.checked;
+                            });
+                            return;
+                        }
+
+                        // Otherwise, toggle the group
+                        const groupId = this.getAttribute("data-group-id");
+                        toggleGroup(groupId);
+                    });
+                });
+
+                // Test checkbox functionality
+                document
+                    .querySelectorAll(".test-checkbox")
+                    .forEach((testCheckbox) => {
+                        testCheckbox.addEventListener("change", function () {
+                            const group = this.getAttribute("data-group");
+                            const groupCheckbox = document.getElementById(
+                                `${group}-checkbox`,
+                            );
+                            const allTestCheckboxes = document.querySelectorAll(
+                                `.test-checkbox[data-group="${group}"]`,
+                            );
+                            const checkedTestCheckboxes =
+                                document.querySelectorAll(
+                                    `.test-checkbox[data-group="${group}"]:checked`,
+                                );
+
+                            groupCheckbox.checked =
+                                allTestCheckboxes.length ===
+                                checkedTestCheckboxes.length;
+                            groupCheckbox.indeterminate =
+                                checkedTestCheckboxes.length > 0 &&
+                                allTestCheckboxes.length !==
+                                    checkedTestCheckboxes.length;
+                        });
+                    });
+
+                // Set the selected environment when form is submitted
+                document
+                    .getElementById("testForm")
+                    .addEventListener("submit", function () {
+                        const environment =
+                            document.getElementById("environment").value;
+                        document.getElementById("selectedEnvironment").value =
+                            environment;
+                    });
+            });
+        </script>
+    </body>
+</html>

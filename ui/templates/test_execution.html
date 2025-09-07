@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Test Execution - {{ environment }}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            // Configure Tailwind
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            dark: {
+                                900: "#121212",
+                                800: "#1e1e1e",
+                                700: "#2d2d2d",
+                                600: "#333333",
+                            },
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            .status-pending {
+                background-color: #fef3c7;
+                color: #92400e;
+            }
+            .status-passed {
+                background-color: #d1fae5;
+                color: #065f46;
+            }
+            .status-failed {
+                background-color: #fee2e2;
+                color: #991b1b;
+            }
+            .status-skipped {
+                background-color: #e5e7eb;
+                color: #374151;
+            }
+            .dark .status-pending {
+                background-color: #78350f;
+                color: #fde68a;
+            }
+            .dark .status-passed {
+                background-color: #065f46;
+                color: #d1fae5;
+            }
+            .dark .status-failed {
+                background-color: #991b1b;
+                color: #fee2e2;
+            }
+            .dark .status-skipped {
+                background-color: #374151;
+                color: #e5e7eb;
+            }
+        </style>
+    </head>
+    <body
+        class="bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100 min-h-screen"
+    >
+        <header
+            class="flex justify-between items-center p-6 bg-gray-100 dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700"
+        >
+            <h1 class="text-2xl font-bold">Test Execution</h1>
+            <div class="flex items-center space-x-4">
+                <button
+                    id="themeToggle"
+                    class="px-4 py-2 bg-gray-200 dark:bg-dark-600 rounded hover:bg-gray-300 dark:hover:bg-dark-700 transition self-end"
+                >
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="container mx-auto p-6">
+            <div class="mb-6 p-4 bg-gray-100 dark:bg-dark-800 rounded">
+                <h2 class="text-xl font-semibold mb-2">Execution Summary</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="p-3 bg-white dark:bg-dark-700 rounded shadow">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Environment
+                        </div>
+                        <div class="text-lg font-semibold">
+                            {{ environment }}
+                        </div>
+                    </div>
+                    <div class="p-3 bg-white dark:bg-dark-700 rounded shadow">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Total Tests
+                        </div>
+                        <div class="text-lg font-semibold" id="total-count">
+                            {{ total_tests }}
+                        </div>
+                    </div>
+                    <div class="p-3 bg-white dark:bg-dark-700 rounded shadow">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Executed
+                        </div>
+                        <div class="text-lg font-semibold" id="executed-count">
+                            0
+                        </div>
+                    </div>
+                    <div class="p-3 bg-white dark:bg-dark-700 rounded shadow">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Status
+                        </div>
+                        <div
+                            class="text-lg font-semibold"
+                            id="execution-status"
+                        >
+                            Running...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <div
+                        class="w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2.5"
+                    >
+                        <div
+                            id="progress-bar"
+                            class="bg-blue-600 h-2.5 rounded-full"
+                            style="width: 0%"
+                        ></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">Test Results</h2>
+                <div
+                    class="border border-gray-200 dark:border-dark-700 rounded overflow-hidden"
+                >
+                    <table class="min-w-full">
+                        <thead class="bg-gray-100 dark:bg-dark-800">
+                            <tr>
+                                <th class="py-3 px-4 text-left">Test Name</th>
+                                <th class="py-3 px-4 text-left">Group</th>
+                                <th class="py-3 px-4 text-left">Status</th>
+                                <th class="py-3 px-4 text-left">
+                                    Execution Time
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="test-results-body">
+                            {% for test in selected_tests %}
+                            <tr
+                                class="border-t border-gray-200 dark:border-dark-700"
+                                id="test-row-{{ loop.index0 }}"
+                                data-test-name="{{ test.name }}"
+                            >
+                                <td class="py-3 px-4">{{ test.name }}</td>
+                                <td class="py-3 px-4">{{ test.group }}</td>
+                                <td class="py-3 px-4">
+                                    <span
+                                        class="px-2 py-1 rounded text-xs status-pending"
+                                        >Pending</span
+                                    >
+                                </td>
+                                <td
+                                    class="py-3 px-4"
+                                    id="time-{{ loop.index0 }}"
+                                >
+                                    -
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="fixed bottom-0 left-0 right-0 bg-gray-100 dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700 p-4">
+            <div class="container mx-auto">
+                <a href="/" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded shadow-lg transition inline-block">
+                    ← Back to Test Selection
+                </a>
+            </div>
+        </footer>
+
+        <script>
+            // Toggle dark/light theme
+            const themeToggle = document.getElementById("themeToggle");
+            const themeIcon = document.getElementById("themeIcon");
+
+            themeToggle.addEventListener("click", () => {
+                document.documentElement.classList.toggle("dark");
+                if (document.documentElement.classList.contains("dark")) {
+                    themeIcon.textContent = "☀️";
+                    themeToggle.innerHTML =
+                        '<span id="themeIcon">☀️</span>';
+                } else {
+                    themeIcon.textContent = "🌙";
+                    themeToggle.innerHTML =
+                        '<span id="themeIcon">🌙</span> Dark Mode';
+                }
+            });
+
+            // Function to update test result
+            function updateTestResult(index, result) {
+                const row = document.getElementById(`test-row-${index}`);
+                if (row) {
+                    // Update status
+                    const statusCell = row.cells[2];
+                    statusCell.innerHTML = `<span class="px-2 py-1 rounded text-xs status-${result.status}">${result.status.charAt(0).toUpperCase() + result.status.slice(1)}</span>`;
+
+                    // Update execution time
+                    const timeCell = document.getElementById(`time-${index}`);
+                    if (timeCell) {
+                        timeCell.textContent = result.execution_time ? `${result.execution_time}ms` : '-';
+                    }
+                }
+            }
+
+            // Function to update summary
+            function updateSummary(executed, total, status) {
+                document.getElementById('executed-count').textContent = executed;
+                document.getElementById('execution-status').textContent = status;
+                const progress = total > 0 ? (executed / total) * 100 : 0;
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+            }
+
+            // Initialize when DOM is loaded
+            document.addEventListener("DOMContentLoaded", function () {
+                // Start the test execution
+                startTestExecution();
+            });
+
+            // Function to start test execution
+            function startTestExecution() {
+                // Create form data
+                const formData = new FormData();
+                formData.append('environment', '{{ environment }}');
+
+                // Add selected tests
+                const testRows = document.querySelectorAll('[data-test-name]');
+                testRows.forEach((row) => {
+                    const testName = row.getAttribute('data-test-name');
+                    formData.append('selected_tests', testName);
+                });
+
+                // Send the form data via POST to start execution
+                fetch('/start-test-execution', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Connect to the SSE endpoint with the execution ID
+                    const eventSource = new EventSource(`/execute-tests/${data.execution_id}`);
+
+                    let executedTests = 0;
+                    const totalTests = {{ total_tests }};
+
+                    eventSource.addEventListener('message', function(event) {
+                        try {
+                            const data = JSON.parse(event.data);
+
+                            if (data.completed) {
+                                eventSource.close();
+                                updateSummary(totalTests, totalTests, "Completed");
+                                return;
+                            }
+
+                            if (data.error) {
+                                console.error("Error:", data.error);
+                                eventSource.close();
+                                return;
+                            }
+
+                            if (data.index !== undefined && data.result) {
+                                updateTestResult(data.index, data.result);
+                                executedTests++;
+                                updateSummary(executedTests, totalTests, executedTests === totalTests ? "Completed" : "Running...");
+                            }
+                        } catch (e) {
+                            console.error("Error parsing JSON:", e);
+                        }
+                    });
+
+                    eventSource.addEventListener('error', function(event) {
+                        console.error("EventSource failed:", event);
+                        eventSource.close();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error starting test execution:', error);
+                });
+            }
+        </script>
+    </body>
+</html>
